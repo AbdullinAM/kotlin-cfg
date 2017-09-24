@@ -35,8 +35,11 @@ class Graph(val inputs: Set<Node>) {
     fun getActiveOutputs() = outputs.filter { !it.isReturn }.toSet()
 
 
-    fun printToDot(name: String) : DotGraph {
-        val graph = DotGraph(name)
+    fun view() {
+        val config = ConfigReader.instance
+        DotGraph.DEFAULT_CMD = config.dot
+        DotGraph.DEFAULT_BROWSER_CMD = arrayOf(config.browser)
+        val graph = DotGraph()
         nodes.forEach {
             val node = DotNode(it.toString()).setShape(
                 when (it) {
@@ -54,7 +57,5 @@ class Graph(val inputs: Set<Node>) {
         }
 
         graph.viewSvg()
-
-        return graph
     }
 }

@@ -52,15 +52,18 @@ class AstVisitor : VoidVisitorAdapter<String>() {
 
             graph.addNode(condNode)
             val thenGraph = Graph(graph.getActiveOutputs())
-            n.thenStmt.accept(this, thenGraph)
-
             val elseGraph = Graph(graph.getActiveOutputs())
+
+            n.thenStmt.accept(this, thenGraph)
             n.elseStmt.ifPresent {
-                it.accept(this, thenGraph)
+                it.accept(this, elseGraph)
             }
 
             graph.merge(thenGraph)
-            if (n.elseStmt.isPresent) graph.merge(elseGraph)
+            if (n.elseStmt.isPresent) {
+                elseGraph.nodes.forEach { graph.nodes.add(it) }
+                elseGraph.getActiveOutputs().forEach { graph.outputs.add(it) }
+            }
             else graph.outputs.add(condNode)
         }
 
@@ -96,7 +99,6 @@ class AstVisitor : VoidVisitorAdapter<String>() {
         val begin = BeginNode(n.name)
         val cfg = Graph(hashSetOf(begin))
         n.accept(MethodVisitor(), cfg)
-        val graph = cfg.printToDot(n.nameAsString)
-        File("${n.getName()}.dot").printWriter().use { it.println(graph.toDot()) }
+        cfg.view()
     }
 }
