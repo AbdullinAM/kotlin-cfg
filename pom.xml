@@ -39,6 +39,11 @@
             <artifactId>javaparser-core</artifactId>
             <version>3.3.4</version>
         </dependency>
+        <dependency>
+            <groupId>info.leadinglight</groupId>
+            <artifactId>jdot</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
