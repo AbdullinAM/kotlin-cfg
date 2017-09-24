@@ -40,7 +40,7 @@ class Graph(val inputs: Set<Node>) {
         nodes.forEach {
             val node = DotNode(it.toString()).setShape(
                 when (it) {
-                    is BeginNode -> Shape.circle
+                    is BeginNode -> Shape.ellipse
                     is ActionNode -> Shape.box
                     is ConditionNode -> Shape.diamond
                 }
@@ -52,6 +52,8 @@ class Graph(val inputs: Set<Node>) {
                 graph.addEdge(Edge().addNode(it.toString()).addNode(succ.toString()))
             }
         }
+
+        graph.viewSvg()
 
         return graph
     }

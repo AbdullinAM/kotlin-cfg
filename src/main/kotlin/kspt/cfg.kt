@@ -10,7 +10,7 @@ fun main(args: Array<String>) {
         exitProcess(-1)
     }
 
-    val `in` = FileInputStream(args[0])
+        val `in` = FileInputStream(args[0])
 
     // parse the file
     val cu = JavaParser.parse(`in`)
