@@ -12,50 +12,49 @@ import com.github.javaparser.ast.stmt.ReturnStmt
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import java.io.File
 
-class ClassVisitor: VoidVisitorAdapter<String>() {
+class AstVisitor : VoidVisitorAdapter<String>() {
 
     class MethodVisitor : VoidVisitorAdapter<Graph>() {
         override fun visit(n: AssignExpr, graph: Graph) {
-            val node = Node(n.toString())
+            val node = ActionNode(n)
             graph.addNode(node)
         }
 
         override fun visit(n: BinaryExpr, graph: Graph) {
-            val node = Node(n.toString())
+            val node = ActionNode(n)
             graph.addNode(node)
         }
 
         override fun visit(n: BlockStmt, graph: Graph) {
-            val blockGraph = Graph(graph.outputs.filter { !it.isReturn }.toSet())
+            val blockGraph = Graph(graph.getActiveOutputs())
             super.visit(n, blockGraph)
             graph.merge(blockGraph)
         }
 
         override fun visit(n: ReturnStmt, graph: Graph) {
-            val node = Node(n.toString())
+            val node = ActionNode(n)
             node.setReturn()
             graph.addNode(node)
         }
 
         override fun visit(n: UnaryExpr, graph: Graph) {
-            val node = Node(n.toString())
-            node.setReturn()
+            val node = ActionNode(n)
             graph.addNode(node)
         }
 
         override fun visit(n: VariableDeclarator, graph: Graph) {
-            val node = Node(n.toString())
+            val node = ActionNode(n)
             graph.addNode(node)
         }
 
         override fun visit(n: IfStmt, graph: Graph) {
-            val condNode = Node(n.condition.toString())
+            val condNode = ConditionNode(n.condition)
 
             graph.addNode(condNode)
-            val thenGraph = Graph(graph.outputs)
+            val thenGraph = Graph(graph.getActiveOutputs())
             n.thenStmt.accept(this, thenGraph)
 
-            val elseGraph = Graph(graph.outputs)
+            val elseGraph = Graph(graph.getActiveOutputs())
             n.elseStmt.ifPresent {
                 it.accept(this, thenGraph)
             }
@@ -66,23 +65,23 @@ class ClassVisitor: VoidVisitorAdapter<String>() {
         }
 
         override fun visit(n: ForStmt, graph: Graph) {
-            val initGraph = Graph(graph.outputs)
+            val initGraph = Graph(graph.getActiveOutputs())
             n.initialization.accept(this, initGraph)
             graph.merge(initGraph)
 
             n.compare.ifPresent {
-                graph.addNode(Node(it.toString()))
+                graph.addNode(ConditionNode(it))
             }
 
-            val bodyGraph = Graph(graph.outputs)
+            val bodyGraph = Graph(graph.getActiveOutputs())
             n.body.accept(this, bodyGraph)
             graph.merge(bodyGraph)
 
-            val updGraph = Graph(graph.outputs)
+            val updGraph = Graph(graph.getActiveOutputs())
             n.update.accept(this, updGraph)
             graph.merge(updGraph)
 
-            graph.outputs.forEach {
+            graph.getActiveOutputs().forEach {
                 bodyGraph.inputs.forEach { ita ->
                     it.addSuccessor(ita)
                     ita.addPredecessor(it)
@@ -94,13 +93,10 @@ class ClassVisitor: VoidVisitorAdapter<String>() {
     }
 
     override fun visit(n: MethodDeclaration, v: String) {
-        var sign = "${n.getType().asString()} ${n.getName()} ("
-        n.parameters.forEach { sign += "$it, "}
-        sign += ")"
-        val begin = Node(sign)
+        val begin = BeginNode(n.name)
         val cfg = Graph(hashSetOf(begin))
         n.accept(MethodVisitor(), cfg)
-        val graph = printToDot(cfg, n.nameAsString)
+        val graph = cfg.printToDot(n.nameAsString)
         File("${n.getName()}.dot").printWriter().use { it.println(graph.toDot()) }
     }
 }

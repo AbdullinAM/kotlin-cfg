@@ -2,36 +2,8 @@ package kspt
 
 import info.leadinglight.jdot.Edge
 import info.leadinglight.jdot.Graph as DotGraph
+import info.leadinglight.jdot.Node as DotNode
 import info.leadinglight.jdot.enums.Shape
-
-class Node(val name: String) {
-    val successors: MutableList<Node> = mutableListOf()
-    val predecessors: MutableList<Node> = mutableListOf()
-    var isReturn = false
-
-    fun addPredecessor(pred: Node) {
-        predecessors.add(pred)
-    }
-
-    fun addSuccessor(succ: Node) {
-        successors.add(succ)
-    }
-
-    fun setReturn() {
-        isReturn = true
-    }
-
-    override fun toString() = name
-
-    override fun hashCode(): Int {
-        return name.hashCode()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (other !is Node) return false
-        return name.equals(other.name)
-    }
-}
 
 class Graph(val inputs: Set<Node>) {
     val nodes = hashSetOf<Node>()
@@ -60,35 +32,27 @@ class Graph(val inputs: Set<Node>) {
         outputs = hashSetOf(n)
     }
 
-}
+    fun getActiveOutputs() = outputs.filter { !it.isReturn }.toSet()
 
-fun printToDot(graph: Graph, name: String) : DotGraph {
-    val g = DotGraph(name)
-    val deque = Deque<Node>()
-    graph.inputs.forEach { deque.pushBack(it) }
-    val visited = hashSetOf<Node>();
-    while (deque.isNotEmpty()) {
-        val current = deque.getFront()
-        if (current == null) throw NullPointerException()
-        println(current)
 
-        g.addNode(info.leadinglight.jdot.Node(current.toString()).setShape(Shape.box))
-        current.successors.forEach { it -> if (!visited.contains(it)) deque.pushBack(it) }
-        visited.add(current)
-    }
-    deque.clear()
-    visited.clear()
-    graph.inputs.forEach { deque.pushBack(it) }
-    while (deque.isNotEmpty()) {
-        val current = deque.getFront()
-        if (current == null) throw NullPointerException()
-
-        for (succ in current.successors) {
-            g.addEdge(Edge().addNode(current.toString()).addNode(succ.toString()))
-            if (!visited.contains(succ)) deque.pushBack(succ)
-            visited.add(current)
+    fun printToDot(name: String) : DotGraph {
+        val graph = DotGraph(name)
+        nodes.forEach {
+            val node = DotNode(it.toString()).setShape(
+                when (it) {
+                    is BeginNode -> Shape.circle
+                    is ActionNode -> Shape.box
+                    is ConditionNode -> Shape.diamond
+                }
+            )
+            graph.addNode(node)
         }
-    }
+        nodes.forEach {
+            for (succ in it.successors) {
+                graph.addEdge(Edge().addNode(it.toString()).addNode(succ.toString()))
+            }
+        }
 
-    return g
+        return graph
+    }
 }
