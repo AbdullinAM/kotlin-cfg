@@ -18,16 +18,14 @@ class Graph(val inputs: Set<Node>) {
 
     fun merge(other: Graph) {
         other.nodes.forEach { nodes.add(it) }
-        outputs = other.outputs
+        outputs = other.getActiveOutputs().toHashSet()
     }
 
     fun addNode(n: Node) {
         nodes.add(n)
-        outputs.forEach {
-            if (!it.isReturn) {
-                it.addSuccessor(n)
-                n.addPredecessor(it)
-            }
+        getActiveOutputs().forEach {
+            it.addSuccessor(n)
+            n.addPredecessor(it)
         }
         outputs = hashSetOf(n)
     }
@@ -36,9 +34,6 @@ class Graph(val inputs: Set<Node>) {
 
 
     fun view() {
-        val config = ConfigReader.instance
-        DotGraph.DEFAULT_CMD = config.dot
-        DotGraph.DEFAULT_BROWSER_CMD = arrayOf(config.browser)
         val graph = DotGraph()
         nodes.forEach {
             val node = DotNode(it.toString()).setShape(
@@ -52,10 +47,9 @@ class Graph(val inputs: Set<Node>) {
         }
         nodes.forEach {
             for (succ in it.successors) {
-                graph.addEdge(Edge().addNode(it.toString()).addNode(succ.toString()))
+                graph.addEdge(Edge(it.toString()).addNode(succ.toString()))
             }
         }
-
         graph.viewSvg()
     }
 }

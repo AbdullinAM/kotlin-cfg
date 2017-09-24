@@ -13,15 +13,12 @@ import java.util.*
 class ConfigReader private constructor() {
 
     internal var inputStream: InputStream? = null
-    var dot: String? = null
-    var browser: String? = null
+    val prop = Properties()
 
     init {
 
         try {
-            val prop = Properties()
             val propFileName = "config.properties"
-
             inputStream = javaClass.classLoader.getResourceAsStream(propFileName)
 
             if (inputStream != null) {
@@ -30,9 +27,6 @@ class ConfigReader private constructor() {
                 throw FileNotFoundException("property file '$propFileName' not found in the classpath")
             }
 
-            dot = prop.getProperty("Dot")
-            browser = prop.getProperty("Browser")
-
         } catch (e: Exception) {
             println("Exception: " + e)
         } finally {
@@ -40,7 +34,11 @@ class ConfigReader private constructor() {
         }
     }
 
+    fun getStringProperty(name: String): String = prop.getProperty(name)
+
+    private object Holder { val INSTANCE = ConfigReader() }
+
     companion object {
-        val instance: ConfigReader by lazy { ConfigReader() }
+        val instance: ConfigReader by lazy { Holder.INSTANCE }
     }
 }

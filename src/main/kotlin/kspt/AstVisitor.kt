@@ -4,17 +4,19 @@ import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.AssignExpr
 import com.github.javaparser.ast.expr.BinaryExpr
+import com.github.javaparser.ast.expr.MethodCallExpr
 import com.github.javaparser.ast.expr.UnaryExpr
-import com.github.javaparser.ast.stmt.BlockStmt
-import com.github.javaparser.ast.stmt.ForStmt
-import com.github.javaparser.ast.stmt.IfStmt
-import com.github.javaparser.ast.stmt.ReturnStmt
+import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
 import java.io.File
+import java.util.*
 
 class AstVisitor : VoidVisitorAdapter<String>() {
 
     class MethodVisitor : VoidVisitorAdapter<Graph>() {
+        val continues = mutableListOf<MutableList<Node>>()
+        val breaks = mutableListOf<MutableList<Node>>()
+
         override fun visit(n: AssignExpr, graph: Graph) {
             val node = ActionNode(n)
             graph.addNode(node)
@@ -60,14 +62,44 @@ class AstVisitor : VoidVisitorAdapter<String>() {
             }
 
             graph.merge(thenGraph)
-            if (n.elseStmt.isPresent) {
-                elseGraph.nodes.forEach { graph.nodes.add(it) }
-                elseGraph.getActiveOutputs().forEach { graph.outputs.add(it) }
+            elseGraph.nodes.forEach { graph.nodes.add(it) }
+            elseGraph.getActiveOutputs().forEach { graph.outputs.add(it) }
+        }
+
+        override fun visit(n: ContinueStmt, graph: Graph) {
+            if (!n.label.isPresent) {
+                val node = ActionNode(n)
+                node.setReturn()
+                graph.nodes.add(node)
+                graph.getActiveOutputs().forEach {
+                    it.addSuccessor(node)
+                    node.addPredecessor(it)
+                }
+                graph.outputs.add(node)
+                continues.last().add(node)
+            } else {
+                println("Labeled continues and breaks are not supported!!")
             }
-            else graph.outputs.add(condNode)
+        }
+
+        override fun visit(n: BreakStmt, graph: Graph) {
+            if (!n.label.isPresent) {
+                val node = ActionNode(n)
+                graph.nodes.add(node)
+                graph.getActiveOutputs().forEach {
+                    it.addSuccessor(node)
+                    node.addPredecessor(it)
+                }
+                graph.outputs.add(node)
+                breaks.last().add(node)
+            } else {
+                println("Labeled continues and breaks are not supported!!")
+            }
         }
 
         override fun visit(n: ForStmt, graph: Graph) {
+            continues.add(mutableListOf())
+            breaks.add(mutableListOf())
             val initGraph = Graph(graph.getActiveOutputs())
             n.initialization.accept(this, initGraph)
             graph.merge(initGraph)
@@ -92,6 +124,18 @@ class AstVisitor : VoidVisitorAdapter<String>() {
             }
 
             graph.outputs = bodyGraph.inputs.toHashSet()
+
+            continues.last().forEach {
+                updGraph.outputs.forEach { itu ->
+                    itu.addPredecessor(it)
+                    it.addSuccessor(itu)
+                }
+            }
+            continues.removeAt(continues.size - 1)
+            breaks.last().forEach {
+                graph.outputs.add(it)
+            }
+            breaks.removeAt(breaks.size - 1)
         }
     }
 
