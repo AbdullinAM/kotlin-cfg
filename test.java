@@ -6,8 +6,15 @@ public class Test {
         for (i = 1; i < n; i++)
         {
             c = a + b;
-            a = b;
-            b = c;
+            if (a < b) continue;
+            int j = 1;
+            while (j < i) {
+                int k = b - a;
+                if (a < k) continue;
+                int y = a + k;
+                ++j;
+            }
+            int l = b - a;
         }
         return c;
     }

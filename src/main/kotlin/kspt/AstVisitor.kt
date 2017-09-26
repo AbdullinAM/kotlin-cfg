@@ -26,7 +26,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
         }
 
         override fun visit(n: BlockStmt, graph: Graph) {
-            val blockGraph = Graph(graph.getActiveOutputs())
+            val blockGraph = Graph(graph.getActiveOutputs(), graph.condition)
             super.visit(n, blockGraph)
             graph.merge(blockGraph)
         }
@@ -36,7 +36,12 @@ class AstVisitor : VoidVisitorAdapter<String>() {
                 val node = ActionNode(n.clone().setLabel(SimpleName(graph.toString())))
                 graph.nodes.add(node)
                 graph.getActiveOutputs().forEach {
-                    it.addSuccessor(node)
+                    if (graph.condition != null) {
+                        it.addConditionalSuccessor(node, graph.condition!!)
+                        graph.condition = null
+                    } else {
+                        it.addSuccessor(node)
+                    }
                     node.addPredecessor(it)
                 }
                 breaks.last().add(node)
@@ -52,7 +57,12 @@ class AstVisitor : VoidVisitorAdapter<String>() {
                 node.setReturn()
                 graph.nodes.add(node)
                 graph.getActiveOutputs().forEach {
-                    it.addSuccessor(node)
+                    if (graph.condition != null) {
+                        it.addConditionalSuccessor(node, graph.condition!!)
+                        graph.condition = null
+                    } else {
+                        it.addSuccessor(node)
+                    }
                     node.addPredecessor(it)
                 }
                 graph.outputs.add(node)
@@ -82,8 +92,8 @@ class AstVisitor : VoidVisitorAdapter<String>() {
             val condNode = ConditionNode(n.condition)
 
             graph.addNode(condNode)
-            val thenGraph = Graph(graph.getActiveOutputs())
-            val elseGraph = Graph(graph.getActiveOutputs())
+            val thenGraph = Graph(graph.getActiveOutputs(), Condition.TRUE)
+            val elseGraph = Graph(graph.getActiveOutputs(), Condition.FALSE)
 
             n.thenStmt.accept(this, thenGraph)
             n.elseStmt.ifPresent {
@@ -106,7 +116,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
                 graph.addNode(ConditionNode(it))
             }
 
-            val bodyGraph = Graph(graph.getActiveOutputs())
+            val bodyGraph = Graph(graph.getActiveOutputs(), Condition.TRUE)
             n.body.accept(this, bodyGraph)
             graph.merge(bodyGraph)
 
@@ -128,6 +138,34 @@ class AstVisitor : VoidVisitorAdapter<String>() {
                     itu.addPredecessor(it)
                     it.addSuccessor(itu)
                 }
+            }
+            continues.removeAt(continues.size - 1)
+            breaks.last().forEach {
+                graph.outputs.add(it)
+            }
+            breaks.removeAt(breaks.size - 1)
+        }
+
+        override fun visit(n: WhileStmt, graph: Graph) {
+            continues.add(mutableListOf())
+            breaks.add(mutableListOf())
+            val condNode = ConditionNode(n.condition)
+            graph.addNode(condNode)
+
+            val bodyGraph = Graph(graph.getActiveOutputs(), Condition.TRUE)
+            n.body.accept(this, bodyGraph)
+            graph.merge(bodyGraph)
+            graph.getActiveOutputs().forEach {
+                bodyGraph.inputs.forEach { ita ->
+                    it.addSuccessor(ita)
+                    ita.addPredecessor(it)
+                }
+            }
+            graph.outputs = bodyGraph.inputs.toHashSet()
+
+            continues.last().forEach {
+                condNode.addPredecessor(it)
+                it.addSuccessor(condNode)
             }
             continues.removeAt(continues.size - 1)
             breaks.last().forEach {

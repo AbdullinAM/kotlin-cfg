@@ -6,6 +6,7 @@ import info.leadinglight.jdot.Node as DotNode
 import info.leadinglight.jdot.enums.Shape
 
 class Graph(val inputs: Set<Node>) {
+    var condition: Condition? = null
     val nodes = hashSetOf<Node>()
     var outputs = hashSetOf<Node>()
 
@@ -16,6 +17,10 @@ class Graph(val inputs: Set<Node>) {
         }
     }
 
+    constructor(inp: Set<Node>, cond: Condition?): this(inp) {
+        condition = cond
+    }
+
     fun merge(other: Graph) {
         other.nodes.forEach { nodes.add(it) }
         outputs = other.getActiveOutputs().toHashSet()
@@ -24,7 +29,12 @@ class Graph(val inputs: Set<Node>) {
     fun addNode(n: Node) {
         nodes.add(n)
         getActiveOutputs().forEach {
-            it.addSuccessor(n)
+            if (condition != null) {
+                it.addConditionalSuccessor(n, condition!!)
+                condition = null
+            } else {
+                it.addSuccessor(n)
+            }
             n.addPredecessor(it)
         }
         outputs = hashSetOf(n)
@@ -47,7 +57,13 @@ class Graph(val inputs: Set<Node>) {
         }
         nodes.forEach {
             for (succ in it.successors) {
-                graph.addEdge(Edge(it.toString()).addNode(succ.toString()))
+                graph.addEdge(Edge(it.toString()).addNode(succ.key.toString()).setColor(
+                        when (succ.value) {
+                            Condition.NONE -> "#000000"
+                            Condition.TRUE -> "#00FF00"
+                            Condition.FALSE -> "#FF0000"
+                        }
+                ))
             }
         }
         graph.viewSvg()

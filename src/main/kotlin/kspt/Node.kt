@@ -2,8 +2,14 @@ package kspt
 
 import com.github.javaparser.ast.Node as AstNode
 
+enum class Condition {
+    NONE,
+    TRUE,
+    FALSE
+}
+
 sealed class Node(val content: AstNode) {
-    val successors: MutableList<Node> = mutableListOf()
+    val successors: HashMap<Node, Condition> = hashMapOf()
     val predecessors: MutableList<Node> = mutableListOf()
     var isReturn = false
 
@@ -12,7 +18,11 @@ sealed class Node(val content: AstNode) {
     }
 
     fun addSuccessor(succ: Node) {
-        successors.add(succ)
+        successors[succ] = Condition.NONE
+    }
+
+    fun addConditionalSuccessor(succ: Node, c: Condition) {
+        successors[succ] = c
     }
 
     fun setReturn() {
