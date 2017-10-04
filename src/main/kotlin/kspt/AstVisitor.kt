@@ -2,12 +2,10 @@ package kspt
 
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.body.VariableDeclarator
-import com.github.javaparser.ast.expr.AssignExpr
-import com.github.javaparser.ast.expr.BinaryExpr
-import com.github.javaparser.ast.expr.SimpleName
-import com.github.javaparser.ast.expr.UnaryExpr
+import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
+import jdk.nashorn.internal.ir.FunctionCall
 
 class AstVisitor : VoidVisitorAdapter<String>() {
 
@@ -70,6 +68,11 @@ class AstVisitor : VoidVisitorAdapter<String>() {
             } else {
                 println("Labeled continues and breaks are not supported!!")
             }
+        }
+
+        override fun visit(n: MethodCallExpr, graph: Graph) {
+            val node = ActionNode(n)
+            graph.addNode(node)
         }
 
         override fun visit(n: ReturnStmt, graph: Graph) {

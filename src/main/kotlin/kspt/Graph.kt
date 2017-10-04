@@ -4,6 +4,7 @@ import info.leadinglight.jdot.Edge
 import info.leadinglight.jdot.Graph as DotGraph
 import info.leadinglight.jdot.Node as DotNode
 import info.leadinglight.jdot.enums.Shape
+import kotlin.concurrent.thread
 
 class Graph(val inputs: Set<Node>) {
     var condition: Condition? = null
@@ -66,6 +67,8 @@ class Graph(val inputs: Set<Node>) {
                 ))
             }
         }
-        graph.viewSvg()
+        thread {
+            graph.viewSvg()
+        }
     }
 }
