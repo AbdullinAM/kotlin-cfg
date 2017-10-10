@@ -5,7 +5,6 @@ import com.github.javaparser.ast.body.VariableDeclarator
 import com.github.javaparser.ast.expr.*
 import com.github.javaparser.ast.stmt.*
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter
-import jdk.nashorn.internal.ir.FunctionCall
 
 class AstVisitor : VoidVisitorAdapter<String>() {
 
@@ -26,7 +25,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
         override fun visit(n: BlockStmt, graph: Graph) {
             val blockGraph = Graph(graph.getActiveOutputs(), graph.condition)
             super.visit(n, blockGraph)
-            graph.merge(blockGraph)
+            graph.add(blockGraph)
         }
 
         override fun visit(n: BreakStmt, graph: Graph) {
@@ -103,9 +102,8 @@ class AstVisitor : VoidVisitorAdapter<String>() {
                 it.accept(this, elseGraph)
             }
 
-            graph.merge(thenGraph)
-            elseGraph.nodes.forEach { graph.nodes.add(it) }
-            elseGraph.getActiveOutputs().forEach { graph.outputs.add(it) }
+            graph.add(thenGraph)
+            graph.merge(elseGraph)
         }
 
         override fun visit(n: ForStmt, graph: Graph) {
@@ -113,7 +111,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
             breaks.add(mutableListOf())
             val initGraph = Graph(graph.getActiveOutputs())
             n.initialization.accept(this, initGraph)
-            graph.merge(initGraph)
+            graph.add(initGraph)
 
             n.compare.ifPresent {
                 graph.addNode(ConditionNode(it))
@@ -121,11 +119,11 @@ class AstVisitor : VoidVisitorAdapter<String>() {
 
             val bodyGraph = Graph(graph.getActiveOutputs(), Condition.TRUE)
             n.body.accept(this, bodyGraph)
-            graph.merge(bodyGraph)
+            graph.add(bodyGraph)
 
             val updGraph = Graph(graph.getActiveOutputs())
             n.update.accept(this, updGraph)
-            graph.merge(updGraph)
+            graph.add(updGraph)
 
             graph.getActiveOutputs().forEach {
                 bodyGraph.inputs.forEach { ita ->
@@ -157,7 +155,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
 
             val bodyGraph = Graph(graph.getActiveOutputs(), Condition.TRUE)
             n.body.accept(this, bodyGraph)
-            graph.merge(bodyGraph)
+            graph.add(bodyGraph)
             graph.getActiveOutputs().forEach {
                 bodyGraph.inputs.forEach { ita ->
                     it.addSuccessor(ita)

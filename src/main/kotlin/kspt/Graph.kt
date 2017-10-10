@@ -22,9 +22,14 @@ class Graph(val inputs: Set<Node>) {
         condition = cond
     }
 
-    fun merge(other: Graph) {
+    fun add(other: Graph) {
         other.nodes.forEach { nodes.add(it) }
         outputs = other.getActiveOutputs().toHashSet()
+    }
+
+    fun merge(other: Graph) {
+        other.nodes.forEach { nodes.add(it) }
+        other.getActiveOutputs().forEach { outputs.add(it) }
     }
 
     fun addNode(n: Node) {
