@@ -31,7 +31,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
 
         override fun visit(n: BreakStmt, graph: Graph) {
             if (!n.label.isPresent) {
-                val node = ActionNode(n.clone().setLabel(SimpleName(graph.toString())))
+                val node = TerminateNode(n.clone().setLabel(SimpleName(graph.toString())))
                 graph.nodes.add(node)
                 graph.getActiveOutputs().forEach {
                     if (graph.condition != null) {
@@ -51,7 +51,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
 
         override fun visit(n: ContinueStmt, graph: Graph) {
             if (!n.label.isPresent) {
-                val node = ActionNode(n.clone().setLabel(SimpleName(graph.toString())))
+                val node = TerminateNode(n.clone().setLabel(SimpleName(graph.toString())))
                 node.setReturn()
                 graph.nodes.add(node)
                 graph.getActiveOutputs().forEach {
@@ -182,6 +182,7 @@ class AstVisitor : VoidVisitorAdapter<String>() {
         val begin = BeginNode(n.name)
         val cfg = Graph(hashSetOf(begin))
         n.accept(MethodVisitor(), cfg)
+        cfg.removeTerminateNodes()
         cfg.view()
     }
 }

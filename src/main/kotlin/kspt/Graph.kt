@@ -43,6 +43,16 @@ class Graph(val inputs: Set<Node>) {
 
     fun getActiveOutputs() = outputs.filter { !it.isReturn }.toSet()
 
+    fun removeTerminateNodes() {
+        val removableNodes = mutableListOf<Node>()
+        nodes.forEach {
+            if (it is TerminateNode) {
+                it.selfDelete()
+                removableNodes.add(it)
+            }
+        }
+        removableNodes.forEach { nodes.remove(it) }
+    }
 
     fun view() {
         val graph = DotGraph()
@@ -52,6 +62,7 @@ class Graph(val inputs: Set<Node>) {
                     is BeginNode -> Shape.ellipse
                     is ActionNode -> Shape.box
                     is ConditionNode -> Shape.diamond
+                    is TerminateNode -> Shape.egg   /// this should not happen in normal workflow
                 }
             )
             graph.addNode(node)
